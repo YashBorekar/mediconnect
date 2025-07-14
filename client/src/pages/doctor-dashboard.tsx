@@ -12,19 +12,44 @@ import Footer from "@/components/footer";
 import AppointmentCard from "@/components/appointment-card";
 import { Calendar, Users, DollarSign, Clock, Settings } from "lucide-react";
 import { useEffect } from "react";
+import { useState } from "react";
+import VideoCall from "@/components/video-call";
+import VerificationStatus from "@/components/verification-status";
+import Chat from "@/components/chat";
 
 export default function DoctorDashboard() {
-  // Prescriptions state
-  const { data: prescriptions = [], isLoading: prescriptionsLoading } = useQuery<any[]>({
-    queryKey: ["/api/prescriptions"],
-    queryFn: async () => {
-      const response = await apiRequest("/api/prescriptions");
-      return response.json();
-    },
-  });
+  const { user, isAuthenticated, isLoading } = useAuth();
+  // Check if doctor profile exists
+  const doctorProfile = (user as any)?.doctorProfile;
+  const hasProfile = !!doctorProfile;
+
+  // State hooks
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [availableSlots, setAvailableSlots] = useState<string[]>(
+    doctorProfile?.availableSlots || []
+  );
+  const [editData, setEditData] = useState<any>(doctorProfile || {});
+  const [activeCallId, setActiveCallId] = useState<null | number>(null);
+  const { data: prescriptions = [], isLoading: prescriptionsLoading } =
+    useQuery<any[]>({
+      queryKey: ["/api/prescriptions"],
+      queryFn: async () => {
+        const response = await apiRequest("/api/prescriptions");
+        return response.json();
+      },
+    });
 
   const approveRefillMutation = useMutation({
-    mutationFn: async ({ id, action }: { id: number; action: "approve" | "deny" }) => {
+    mutationFn: async ({
+      id,
+      action,
+    }: {
+      id: number;
+      action: "approve" | "deny";
+    }) => {
       await apiRequest(`/api/prescriptions/${id}/refill`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -36,15 +61,19 @@ export default function DoctorDashboard() {
       toast({ title: "Updated", description: "Refill status updated" });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update refill", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update refill",
+        variant: "destructive",
+      });
     },
   });
   // Health records state
-  const [showRecordModal, setShowRecordModal] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   // Fetch health records
-  const { data: healthRecords = [], isLoading: recordsLoading } = useQuery<any[]>({
+  const { data: healthRecords = [], isLoading: recordsLoading } = useQuery<
+    any[]
+  >({
     queryKey: ["/api/health-records"],
     queryFn: async () => {
       const response = await apiRequest("/api/health-records");
@@ -78,7 +107,11 @@ export default function DoctorDashboard() {
       toast({ title: "Success", description: "Health record saved" });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to save record", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to save record",
+        variant: "destructive",
+      });
     },
   });
 
@@ -92,14 +125,14 @@ export default function DoctorDashboard() {
       toast({ title: "Deleted", description: "Health record deleted" });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to delete record", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to delete record",
+        variant: "destructive",
+      });
     },
   });
   // Modal state for schedule management
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [availableSlots, setAvailableSlots] = useState<string[]>(
-    doctorProfile?.availableSlots || []
-  );
 
   const addSlot = (slot: string) => {
     if (!availableSlots.includes(slot)) {
@@ -107,7 +140,7 @@ export default function DoctorDashboard() {
     }
   };
   const removeSlot = (slot: string) => {
-    setAvailableSlots(availableSlots.filter((s) => s !== slot));
+    setAvailableSlots(availableSlots.filter((s: string) => s !== slot));
   };
 
   const saveSlotsMutation = useMutation({
@@ -133,8 +166,6 @@ export default function DoctorDashboard() {
     },
   });
   // Modal state for editing profile
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState<any>(doctorProfile || {});
 
   const specialties = [
     "Cardiologist",
@@ -181,7 +212,6 @@ export default function DoctorDashboard() {
       });
     },
   });
-  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -213,8 +243,6 @@ export default function DoctorDashboard() {
     mutationFn: async (appointmentId: number) => {
       setActiveCallId(appointmentId);
     },
-  // State for active video call
-  const [activeCallId, setActiveCallId] = useState<null | number>(null);
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
@@ -306,8 +334,7 @@ export default function DoctorDashboard() {
   }
 
   // Check if doctor profile exists
-  const doctorProfile = (user as any)?.doctorProfile;
-  const hasProfile = !!doctorProfile;
+  // ...already declared above...
 
   // If doctor doesn't have a profile, show profile creation form
   if (isAuthenticated && user?.role === "doctor" && !hasProfile) {
@@ -382,7 +409,7 @@ export default function DoctorDashboard() {
             <div className="mb-4">
               <h3 className="font-semibold mb-2">Current Available Slots</h3>
               <ul className="space-y-1">
-                {availableSlots.map((slot) => (
+                {availableSlots.map((slot: string) => (
                   <li key={slot} className="flex items-center justify-between">
                     <span>{slot}</span>
                     <Button
@@ -700,18 +727,21 @@ export default function DoctorDashboard() {
                 ) : todayAppointments.length > 0 ? (
                   <div className="space-y-4">
                     {todayAppointments.map((appointment: any) => (
-    <div key={appointment.id}>
-      <AppointmentCard
-        appointment={appointment}
-        userRole="doctor"
-        onJoinCall={(id) => joinCallMutation.mutate(id)}
-      />
-      {activeCallId === appointment.id && (
-        <div className="my-4">
-          <VideoCall roomId={`appointment-${appointment.id}`} userRole="doctor" />
-        </div>
-      )}
-    </div>
+                      <div key={appointment.id}>
+                        <AppointmentCard
+                          appointment={appointment}
+                          userRole="doctor"
+                          onJoinCall={(id) => joinCallMutation.mutate(id)}
+                        />
+                        {activeCallId === appointment.id && (
+                          <div className="my-4">
+                            <VideoCall
+                              roomId={`appointment-${appointment.id}`}
+                              userRole="doctor"
+                            />
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -731,21 +761,24 @@ export default function DoctorDashboard() {
                 {upcomingAppointments.length > 0 ? (
                   <div className="space-y-4">
                     {upcomingAppointments
-    .slice(0, 5)
-    .map((appointment: any) => (
-      <div key={appointment.id}>
-        <AppointmentCard
-          appointment={appointment}
-          userRole="doctor"
-          onJoinCall={(id) => joinCallMutation.mutate(id)}
-        />
-        {activeCallId === appointment.id && (
-          <div className="my-4">
-            <VideoCall roomId={`appointment-${appointment.id}`} userRole="doctor" />
-          </div>
-        )}
-      </div>
-    ))}
+                      .slice(0, 5)
+                      .map((appointment: any) => (
+                        <div key={appointment.id}>
+                          <AppointmentCard
+                            appointment={appointment}
+                            userRole="doctor"
+                            onJoinCall={(id) => joinCallMutation.mutate(id)}
+                          />
+                          {activeCallId === appointment.id && (
+                            <div className="my-4">
+                              <VideoCall
+                                roomId={`appointment-${appointment.id}`}
+                                userRole="doctor"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -757,163 +790,254 @@ export default function DoctorDashboard() {
           </div>
 
           {/* Sidebar */}
-            {/* Doctor Verification Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Verification Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VerificationStatus />
-              </CardContent>
-            </Card>
-            {/* Prescriptions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Prescriptions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {prescriptionsLoading ? (
-                  <div>Loading...</div>
-                ) : prescriptions.length > 0 ? (
-                  <table className="w-full text-sm border">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="p-2">Medication</th>
-                        <th className="p-2">Patient</th>
-                        <th className="p-2">Status</th>
-                        <th className="p-2">Actions</th>
+          {/* Doctor Verification Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Verification Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VerificationStatus />
+            </CardContent>
+          </Card>
+          {/* Prescriptions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Prescriptions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {prescriptionsLoading ? (
+                <div>Loading...</div>
+              ) : prescriptions.length > 0 ? (
+                <table className="w-full text-sm border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2">Medication</th>
+                      <th className="p-2">Patient</th>
+                      <th className="p-2">Status</th>
+                      <th className="p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {prescriptions.map((rx) => (
+                      <tr key={rx.id} className="border-t">
+                        <td className="p-2">{rx.medication}</td>
+                        <td className="p-2">{rx.patientId}</td>
+                        <td className="p-2">
+                          {rx.refillRequested
+                            ? "Refill Requested"
+                            : rx.refillApproved
+                            ? "Refill Approved"
+                            : "Active"}
+                        </td>
+                        <td className="p-2 flex gap-2">
+                          {rx.refillRequested && !rx.refillApproved && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  approveRefillMutation.mutate({
+                                    id: rx.id,
+                                    action: "approve",
+                                  })
+                                }
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() =>
+                                  approveRefillMutation.mutate({
+                                    id: rx.id,
+                                    action: "deny",
+                                  })
+                                }
+                              >
+                                Deny
+                              </Button>
+                            </>
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {prescriptions.map((rx) => (
-                        <tr key={rx.id} className="border-t">
-                          <td className="p-2">{rx.medication}</td>
-                          <td className="p-2">{rx.patientId}</td>
-                          <td className="p-2">{rx.refillRequested ? "Refill Requested" : rx.refillApproved ? "Refill Approved" : "Active"}</td>
-                          <td className="p-2 flex gap-2">
-                            {rx.refillRequested && !rx.refillApproved && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => approveRefillMutation.mutate({ id: rx.id, action: "approve" })}>Approve</Button>
-                                <Button size="sm" variant="destructive" onClick={() => approveRefillMutation.mutate({ id: rx.id, action: "deny" })}>Deny</Button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div>No prescriptions found.</div>
-                )}
-              </CardContent>
-            </Card>
-            {/* Secure Messaging */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Secure Messaging</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* For demo: chat with first patient from upcoming appointments */}
-                {upcomingAppointments.length > 0 ? (
-                  <Chat receiverId={upcomingAppointments[0].patientId} appointmentId={upcomingAppointments[0].id} />
-                ) : (
-                  <div>No patients to message.</div>
-                )}
-              </CardContent>
-            </Card>
-            {/* Health Records */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Health Records</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => { setEditingRecord(null); setShowRecordModal(true); }}>
-                    Add Record
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {recordsLoading ? (
-                  <div>Loading...</div>
-                ) : healthRecords.length > 0 ? (
-                  <table className="w-full text-sm border">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="p-2">Type</th>
-                        <th className="p-2">Title</th>
-                        <th className="p-2">Patient</th>
-                        <th className="p-2">Date</th>
-                        <th className="p-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {healthRecords.map((rec) => (
-                        <tr key={rec.id} className="border-t">
-                          <td className="p-2">{rec.recordType}</td>
-                          <td className="p-2">{rec.title}</td>
-                          <td className="p-2">{rec.patientId || "-"}</td>
-                          <td className="p-2">{rec.createdAt ? new Date(rec.createdAt).toLocaleDateString() : "-"}</td>
-                          <td className="p-2 flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => { setEditingRecord(rec); setShowRecordModal(true); }}>Edit</Button>
-                            <Button size="sm" variant="destructive" onClick={() => deleteRecordMutation.mutate(rec.id)}>Delete</Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div>No health records found.</div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Health Record Modal */}
-            {showRecordModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
-                  <h2 className="text-xl font-bold mb-4">{editingRecord ? "Edit" : "Add"} Health Record</h2>
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      const form = e.target as HTMLFormElement;
-                      const formData = new FormData(form);
-                      const record = {
-                        id: editingRecord?.id,
-                        recordType: formData.get("recordType"),
-                        title: formData.get("title"),
-                        description: formData.get("description"),
-                        isPrivate: formData.get("isPrivate") === "on",
-                      };
-                      saveRecordMutation.mutate(record);
-                    }}
-                  >
-                    <div className="mb-4">
-                      <label className="block font-medium mb-1">Type</label>
-                      <input name="recordType" defaultValue={editingRecord?.recordType || "exam"} className="w-full border rounded p-2" required />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block font-medium mb-1">Title</label>
-                      <input name="title" defaultValue={editingRecord?.title || ""} className="w-full border rounded p-2" required />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block font-medium mb-1">Description</label>
-                      <textarea name="description" defaultValue={editingRecord?.description || ""} className="w-full border rounded p-2" />
-                    </div>
-                    <div className="mb-4 flex items-center gap-2">
-                      <input type="checkbox" name="isPrivate" defaultChecked={editingRecord?.isPrivate} />
-                      <label>Private</label>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button type="submit" className="flex-1" disabled={saveRecordMutation.isPending}>
-                        {saveRecordMutation.isPending ? "Saving..." : "Save"}
-                      </Button>
-                      <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowRecordModal(false); setEditingRecord(null); }}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div>No prescriptions found.</div>
+              )}
+            </CardContent>
+          </Card>
+          {/* Secure Messaging */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Secure Messaging</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* For demo: chat with first patient from upcoming appointments */}
+              {upcomingAppointments.length > 0 ? (
+                <Chat
+                  receiverId={upcomingAppointments[0].patientId}
+                  appointmentId={upcomingAppointments[0].id}
+                />
+              ) : (
+                <div>No patients to message.</div>
+              )}
+            </CardContent>
+          </Card>
+          {/* Health Records */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Health Records</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingRecord(null);
+                    setShowRecordModal(true);
+                  }}
+                >
+                  Add Record
+                </Button>
               </div>
-            )}
+            </CardHeader>
+            <CardContent>
+              {recordsLoading ? (
+                <div>Loading...</div>
+              ) : healthRecords.length > 0 ? (
+                <table className="w-full text-sm border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="p-2">Type</th>
+                      <th className="p-2">Title</th>
+                      <th className="p-2">Patient</th>
+                      <th className="p-2">Date</th>
+                      <th className="p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {healthRecords.map((rec) => (
+                      <tr key={rec.id} className="border-t">
+                        <td className="p-2">{rec.recordType}</td>
+                        <td className="p-2">{rec.title}</td>
+                        <td className="p-2">{rec.patientId || "-"}</td>
+                        <td className="p-2">
+                          {rec.createdAt
+                            ? new Date(rec.createdAt).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td className="p-2 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingRecord(rec);
+                              setShowRecordModal(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteRecordMutation.mutate(rec.id)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div>No health records found.</div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Health Record Modal */}
+          {showRecordModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+              <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
+                <h2 className="text-xl font-bold mb-4">
+                  {editingRecord ? "Edit" : "Add"} Health Record
+                </h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const formData = new FormData(form);
+                    const record = {
+                      id: editingRecord?.id,
+                      recordType: formData.get("recordType"),
+                      title: formData.get("title"),
+                      description: formData.get("description"),
+                      isPrivate: formData.get("isPrivate") === "on",
+                    };
+                    saveRecordMutation.mutate(record);
+                  }}
+                >
+                  <div className="mb-4">
+                    <label className="block font-medium mb-1">Type</label>
+                    <input
+                      name="recordType"
+                      defaultValue={editingRecord?.recordType || "exam"}
+                      className="w-full border rounded p-2"
+                      required
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block font-medium mb-1">Title</label>
+                    <input
+                      name="title"
+                      defaultValue={editingRecord?.title || ""}
+                      className="w-full border rounded p-2"
+                      required
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block font-medium mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      defaultValue={editingRecord?.description || ""}
+                      className="w-full border rounded p-2"
+                    />
+                  </div>
+                  <div className="mb-4 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="isPrivate"
+                      defaultChecked={editingRecord?.isPrivate}
+                    />
+                    <label>Private</label>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={saveRecordMutation.isPending}
+                    >
+                      {saveRecordMutation.isPending ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowRecordModal(false);
+                        setEditingRecord(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
           <div className="space-y-6">
             {/* Schedule Overview */}
             <Card>

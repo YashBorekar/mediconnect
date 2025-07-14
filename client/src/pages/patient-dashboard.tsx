@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -18,8 +19,13 @@ import {
   Activity,
 } from "lucide-react";
 import { useEffect } from "react";
+import VideoCall from "@/components/video-call";
+import Chat from "@/components/chat";
 
 export default function PatientDashboard() {
+  const [activeCallId, setActiveCallId] = useState<null | number>(null);
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
   // Prescriptions state
   const { data: prescriptions = [], isLoading: prescriptionsLoading } =
     useQuery<any[]>({
@@ -72,12 +78,12 @@ export default function PatientDashboard() {
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["/api/appointments"],
     enabled: true, // Always load appointments for demo mode
-  });
+  }) as { data: any[]; isLoading: boolean };
 
   const { data: healthRecords = [], isLoading: recordsLoading } = useQuery({
     queryKey: ["/api/health-records"],
     enabled: true, // Always load health records for demo mode
-  });
+  }) as { data: any[]; isLoading: boolean };
 
   const joinCallMutation = useMutation({
     mutationFn: async (appointmentId: number) => {
@@ -109,7 +115,9 @@ export default function PatientDashboard() {
 
   const cancelAppointmentMutation = useMutation({
     mutationFn: async (appointmentId: number) => {
-      await apiRequest("DELETE", `/api/appointments/${appointmentId}`);
+      await apiRequest(`/api/appointments/${appointmentId}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
@@ -152,6 +160,56 @@ export default function PatientDashboard() {
   );
 
   const recentRecords = healthRecords.slice(0, 3);
+  // Mutations for health records
+  const saveRecordMutation = useMutation({
+    mutationFn: async (record: any) => {
+      if (record.id) {
+        const response = await apiRequest(`/api/health-records/${record.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+        return response.json();
+      } else {
+        const response = await apiRequest("/api/health-records", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+        return response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      setShowRecordModal(false);
+      setEditingRecord(null);
+      toast({ title: "Success", description: "Health record saved" });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save record",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteRecordMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest(`/api/health-records/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      toast({ title: "Deleted", description: "Health record deleted" });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete record",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -280,7 +338,7 @@ export default function PatientDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {healthRecords.map((rec) => (
+                      {healthRecords.map((rec: any) => (
                         <tr key={rec.id} className="border-t">
                           <td className="p-2">{rec.recordType}</td>
                           <td className="p-2">{rec.title}</td>

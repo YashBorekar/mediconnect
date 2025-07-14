@@ -396,15 +396,15 @@ export default function BookAppointment() {
                     {availableSlots.length > 0 ? (
                       availableSlots.map((slot) => (
                         <button
-                          key={slot.time}
-                          onClick={() => setSelectedTime(slot.time)}
+                          key={slot}
+                          onClick={() => setSelectedTime(slot)}
                           className={`w-full p-3 border rounded-lg text-left transition-colors ${
-                            selectedTime === slot.time
+                            selectedTime === slot
                               ? "bg-primary text-white border-primary"
                               : "border-gray-300 hover:border-primary hover:bg-primary/5"
                           }`}
                         >
-                          {slot.time}
+                          {slot}
                         </button>
                       ))
                     ) : (
