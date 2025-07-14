@@ -14,11 +14,37 @@ import {
   type InsertHealthRecord,
   type SymptomAnalysis,
   type InsertSymptomAnalysis,
+  doctorVerifications,
+  prescriptions,
+  messages,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
+  // Doctor verification operations
+  createDoctorVerification(data: { doctorId: number }): Promise<any>;
+  getAllDoctorVerifications(): Promise<any[]>;
+  getDoctorVerificationsByDoctor(doctorId: number): Promise<any[]>;
+  updateDoctorVerification(id: number, updates: any): Promise<any>;
+
+  // Prescription operations
+  createPrescription(data: any): Promise<any>;
+  getPrescriptionsByDoctor(doctorId: number): Promise<any[]>;
+  getPrescriptionsByPatient(patientId: string): Promise<any[]>;
+  updatePrescription(id: number, updates: any): Promise<any>;
+
+  // Messaging operations
+  createMessage(data: any): Promise<any>;
+  getMessages(params: {
+    userId: string;
+    appointmentId?: any;
+    withUser?: any;
+  }): Promise<any[]>;
+
+  // Health record operations
+  getHealthRecordsByDoctor(doctorId: number): Promise<any[]>;
+  deleteHealthRecord(id: number): Promise<void>;
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -65,6 +91,96 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Doctor verification operations
+  async createDoctorVerification(data: { doctorId: number }): Promise<any> {
+    const [request] = await db
+      .insert(doctorVerifications)
+      .values(data)
+      .returning();
+    return request;
+  }
+  async getAllDoctorVerifications(): Promise<any[]> {
+    return await db.select().from(doctorVerifications);
+  }
+  async getDoctorVerificationsByDoctor(doctorId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(doctorVerifications)
+      .where(eq(doctorVerifications.doctorId, doctorId));
+  }
+  async updateDoctorVerification(id: number, updates: any): Promise<any> {
+    const [request] = await db
+      .update(doctorVerifications)
+      .set(updates)
+      .where(eq(doctorVerifications.id, id))
+      .returning();
+    return request;
+  }
+
+  // Prescription operations
+  async createPrescription(data: any): Promise<any> {
+    const [rx] = await db.insert(prescriptions).values(data).returning();
+    return rx;
+  }
+  async getPrescriptionsByDoctor(doctorId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.doctorId, doctorId));
+  }
+  async getPrescriptionsByPatient(patientId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.patientId, patientId));
+  }
+  async updatePrescription(id: number, updates: any): Promise<any> {
+    const [rx] = await db
+      .update(prescriptions)
+      .set(updates)
+      .where(eq(prescriptions.id, id))
+      .returning();
+    return rx;
+  }
+
+  // Messaging operations
+  async createMessage(data: any): Promise<any> {
+    const [msg] = await db.insert(messages).values(data).returning();
+    return msg;
+  }
+  async getMessages(params: {
+    userId: string;
+    appointmentId?: any;
+    withUser?: any;
+  }): Promise<any[]> {
+    const { userId, appointmentId, withUser } = params;
+    // Build a compound condition for Drizzle ORM
+    let condition = or(
+      eq(messages.senderId, userId),
+      eq(messages.receiverId, userId)
+    );
+    if (appointmentId) {
+      condition = and(condition, eq(messages.appointmentId, appointmentId));
+    }
+    if (withUser) {
+      condition = and(
+        condition,
+        or(eq(messages.senderId, withUser), eq(messages.receiverId, withUser))
+      );
+    }
+    return await db.select().from(messages).where(condition);
+  }
+
+  // Health record operations
+  async getHealthRecordsByDoctor(doctorId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(healthRecords)
+      .where(eq(healthRecords.doctorId, doctorId));
+  }
+  async deleteHealthRecord(id: number): Promise<void> {
+    await db.delete(healthRecords).where(eq(healthRecords.id, id));
+  }
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -120,6 +236,7 @@ export class DatabaseStorage implements IStorage {
         id: doctors.id,
         userId: doctors.userId,
         specialty: doctors.specialty,
+        availableSlots: doctors.availableSlots,
         education: doctors.education,
         hospital: doctors.hospital,
         experience: doctors.experience,
@@ -165,6 +282,7 @@ export class DatabaseStorage implements IStorage {
         id: doctors.id,
         userId: doctors.userId,
         specialty: doctors.specialty,
+        availableSlots: doctors.availableSlots,
         education: doctors.education,
         hospital: doctors.hospital,
         experience: doctors.experience,

@@ -203,6 +203,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: AuthenticatedRequest, res) => {
       try {
         const { appointmentId, withUser } = req.query;
+        if (!req.userId) {
+          return res
+            .status(401)
+            .json({ message: "Unauthorized: userId missing" });
+        }
         const messages = await storage.getMessages({
           userId: req.userId,
           appointmentId,
