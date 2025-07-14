@@ -86,29 +86,8 @@ export default function BookAppointment() {
     enabled: !doctorId,
   });
 
-  // Generate available time slots (mock data - in real app would come from API)
-  const generateTimeSlots = (date: Date): TimeSlot[] => {
-    const slots: TimeSlot[] = [];
-    const startHour = 9;
-    const endHour = 17;
-    const slotDuration = 30; // minutes
-
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += slotDuration) {
-        const time = format(
-          setMinutes(setHours(new Date(), hour), minute),
-          "h:mm a"
-        );
-        // Mock availability - in real app would check doctor's schedule
-        const available = Math.random() > 0.3; // 70% chance of being available
-        slots.push({ time, available });
-      }
-    }
-    return slots;
-  };
-
-  const timeSlots = generateTimeSlots(selectedDate);
-  const availableSlots = timeSlots.filter((slot) => slot.available);
+  // Use doctor's availableSlots from API
+  const availableSlots: string[] = doctor?.availableSlots || [];
 
   // Book appointment mutation
   const bookAppointmentMutation = useMutation({
