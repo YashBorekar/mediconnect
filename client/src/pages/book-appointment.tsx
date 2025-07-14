@@ -105,6 +105,20 @@ export default function BookAppointment() {
         description: "Appointment booked successfully!",
       });
       setLocation("/");
+      // Remove booked slot from doctor's availableSlots
+      if (doctor && selectedTime) {
+        const updatedSlots = (doctor.availableSlots || []).filter(
+          (slot: string) => slot !== selectedTime
+        );
+        apiRequest(`/api/doctors/${doctor.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ availableSlots: updatedSlots }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/doctors", doctor.id],
+        });
+      }
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
