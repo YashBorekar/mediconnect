@@ -17,6 +17,84 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Doctor Verification
+  app.post(
+    "/api/doctor-verifications",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const user = req.user;
+        if (!user || user.role !== "doctor")
+          return res
+            .status(403)
+            .json({ message: "Only doctors can submit verification" });
+        const doctorProfile = await storage.getDoctorProfile(user.id);
+        if (!doctorProfile)
+          return res.status(404).json({ message: "Doctor profile not found" });
+        const request = await storage.createDoctorVerification({
+          doctorId: doctorProfile.id,
+        });
+        res.status(201).json(request);
+      } catch (error) {
+        console.error("Error submitting verification:", error);
+        res.status(500).json({ message: "Failed to submit verification" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/doctor-verifications",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const user = req.user;
+        let requests: any[] = [];
+        if (user?.role === "admin") {
+          requests = await storage.getAllDoctorVerifications();
+        } else if (user?.role === "doctor") {
+          const doctorProfile = await storage.getDoctorProfile(user.id);
+          if (doctorProfile)
+            requests = await storage.getDoctorVerificationsByDoctor(
+              doctorProfile.id
+            );
+        }
+        res.json(requests);
+      } catch (error) {
+        console.error("Error fetching verifications:", error);
+        res.status(500).json({ message: "Failed to fetch verifications" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/doctor-verifications/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const user = req.user;
+        if (!user || user.role !== "admin")
+          return res
+            .status(403)
+            .json({ message: "Only admin can review verifications" });
+        const verificationId = parseInt(req.params.id);
+        const { status, notes } = req.body;
+        const updates: any = {
+          status,
+          notes,
+          reviewedAt: new Date(),
+          reviewerId: user.id,
+        };
+        const request = await storage.updateDoctorVerification(
+          verificationId,
+          updates
+        );
+        res.json(request);
+      } catch (error) {
+        console.error("Error updating verification:", error);
+        res.status(500).json({ message: "Failed to update verification" });
+      }
+    }
+  );
   // Prescription CRUD
   app.post(
     "/api/prescriptions",

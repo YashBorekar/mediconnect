@@ -71,6 +71,18 @@ export const appointments = pgTable("appointments", {
 // Health records
 // Messages
 // Prescriptions
+// Doctor Verification Requests
+export const doctorVerifications = pgTable("doctor_verifications", {
+  id: serial("id").primaryKey(),
+  doctorId: integer("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  status: varchar("status").default("pending"), // pending, approved, denied
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewerId: varchar("reviewer_id").references(() => users.id),
+  notes: text("notes"),
+});
 export const prescriptions = pgTable("prescriptions", {
   id: serial("id").primaryKey(),
   patientId: varchar("patient_id")
