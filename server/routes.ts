@@ -30,9 +30,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           return res.status(401).json({ message: "User not found" });
         }
+
         // Remove password from response
         const { password: _, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
+
+        // If user is a doctor, include doctor profile
+        if (user.role === "doctor") {
+          const doctorProfile = await storage.getDoctorProfile(user.id);
+          res.json({
+            ...userWithoutPassword,
+            doctorProfile,
+          });
+        } else {
+          res.json(userWithoutPassword);
+        }
       } catch (error) {
         console.error("Error fetching user:", error);
         res.status(500).json({ message: "Failed to fetch user" });
@@ -124,6 +135,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         console.error("Error updating doctor profile:", error);
         res.status(500).json({ message: "Failed to update doctor profile" });
+      }
+    }
+  );
+
+  // Create doctor profile for existing doctor users
+  app.post(
+    "/api/doctors/create-profile",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const user = req.user;
+        if (!user || user.role !== "doctor") {
+          return res
+            .status(403)
+            .json({
+              message: "Access denied. Only doctors can create profiles.",
+            });
+        }
+
+        // Check if profile already exists
+        const existingProfile = await storage.getDoctorProfile(user.id);
+        if (existingProfile) {
+          return res
+            .status(400)
+            .json({ message: "Doctor profile already exists" });
+        }
+
+        // Create default doctor profile
+        const doctorProfile = await storage.createDoctorProfile({
+          userId: user.id,
+          specialty: req.body.specialty || "General Medicine",
+          education: req.body.education || "Medical Degree",
+          hospital: req.body.hospital || "Not specified",
+          experience: req.body.experience || 0,
+          consultationFee: req.body.consultationFee || "100.00",
+          rating: "0.00",
+          reviewCount: 0,
+          isVerified: false,
+          isAvailable: true,
+          bio: req.body.bio || "New doctor profile",
+        });
+
+        res.status(201).json(doctorProfile);
+      } catch (error) {
+        console.error("Error creating doctor profile:", error);
+        res.status(500).json({ message: "Failed to create doctor profile" });
       }
     }
   );

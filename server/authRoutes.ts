@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import { nanoid } from 'nanoid';
-import { storage } from './storage';
-import { generateToken, hashPassword, comparePassword } from './auth';
-import { z } from 'zod';
+import { Router } from "express";
+import { nanoid } from "nanoid";
+import { storage } from "./storage";
+import { generateToken, hashPassword, comparePassword } from "./auth";
+import { z } from "zod";
 
 const router = Router();
 
@@ -12,7 +12,7 @@ const registerSchema = z.object({
   password: z.string().min(6),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  role: z.enum(['patient', 'doctor']).default('patient'),
+  role: z.enum(["patient", "doctor"]).default("patient"),
 });
 
 // Login schema
@@ -22,14 +22,14 @@ const loginSchema = z.object({
 });
 
 // Register endpoint
-router.post('/register', async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
     const validatedData = registerSchema.parse(req.body);
-    
+
     // Check if user already exists
     const existingUser = await storage.getUserByEmail(validatedData.email);
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     // Hash password
@@ -45,6 +45,23 @@ router.post('/register', async (req, res) => {
       role: validatedData.role,
     });
 
+    // If user is registering as a doctor, create a doctor profile
+    if (validatedData.role === "doctor") {
+      await storage.createDoctorProfile({
+        userId: user.id,
+        specialty: "General Medicine", // Default specialty
+        education: "Medical Degree",
+        hospital: "Not specified",
+        experience: 0,
+        consultationFee: "100.00",
+        rating: "0.00",
+        reviewCount: 0,
+        isVerified: false,
+        isAvailable: true,
+        bio: "New doctor profile",
+      });
+    }
+
     // Generate token
     const token = generateToken(user.id);
 
@@ -56,29 +73,34 @@ router.post('/register', async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error("Registration error:", error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid input data', errors: error.errors });
+      return res
+        .status(400)
+        .json({ message: "Invalid input data", errors: error.errors });
     }
-    res.status(500).json({ message: 'Registration failed' });
+    res.status(500).json({ message: "Registration failed" });
   }
 });
 
 // Login endpoint
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const validatedData = loginSchema.parse(req.body);
 
     // Find user
     const user = await storage.getUserByEmail(validatedData.email);
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Check password
-    const isPasswordValid = await comparePassword(validatedData.password, user.password);
+    const isPasswordValid = await comparePassword(
+      validatedData.password,
+      user.password
+    );
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     // Generate token
@@ -92,11 +114,13 @@ router.post('/login', async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: 'Invalid input data', errors: error.errors });
+      return res
+        .status(400)
+        .json({ message: "Invalid input data", errors: error.errors });
     }
-    res.status(500).json({ message: 'Login failed' });
+    res.status(500).json({ message: "Login failed" });
   }
 });
 

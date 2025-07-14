@@ -36,6 +36,10 @@ export default function DoctorDashboard() {
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["/api/appointments"],
     enabled: true, // Always load appointments for demo mode
+    queryFn: async () => {
+      const response = await apiRequest("/api/appointments");
+      return response.json();
+    },
   });
 
   const joinCallMutation = useMutation({
@@ -68,7 +72,12 @@ export default function DoctorDashboard() {
 
   const updateAppointmentMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: any }) => {
-      await apiRequest("PATCH", `/api/appointments/${id}`, updates);
+      const response = await apiRequest(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
@@ -97,6 +106,32 @@ export default function DoctorDashboard() {
     },
   });
 
+  // Create doctor profile mutation
+  const createProfileMutation = useMutation({
+    mutationFn: async (profileData: any) => {
+      const response = await apiRequest("/api/doctors/create-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Doctor profile created successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create doctor profile",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -105,25 +140,65 @@ export default function DoctorDashboard() {
     );
   }
 
-  const todayAppointments = appointments.filter((apt: any) => {
+  // Check if doctor profile exists
+  const doctorProfile = (user as any)?.doctorProfile;
+  const hasProfile = !!doctorProfile;
+
+  // If doctor doesn't have a profile, show profile creation form
+  if (isAuthenticated && user?.role === "doctor" && !hasProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Complete Your Doctor Profile</CardTitle>
+              <p className="text-gray-600">
+                Please complete your profile to start appearing in doctor
+                searches and receiving appointments.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => createProfileMutation.mutate({})}
+                disabled={createProfileMutation.isPending}
+                className="w-full"
+              >
+                {createProfileMutation.isPending
+                  ? "Creating Profile..."
+                  : "Create Doctor Profile"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const todayAppointments = (appointments as any[]).filter((apt: any) => {
     const today = new Date().toDateString();
     return new Date(apt.appointmentDate).toDateString() === today;
   });
 
-  const upcomingAppointments = appointments.filter((apt: any) => 
-    new Date(apt.appointmentDate) > new Date() && apt.status === "scheduled"
+  const upcomingAppointments = (appointments as any[]).filter(
+    (apt: any) =>
+      new Date(apt.appointmentDate) > new Date() && apt.status === "scheduled"
   );
 
-  const completedAppointments = appointments.filter((apt: any) => apt.status === "completed");
+  const completedAppointments = (appointments as any[]).filter(
+    (apt: any) => apt.status === "completed"
+  );
 
-  const totalRevenue = completedAppointments.reduce((sum: number, apt: any) => 
-    sum + (parseFloat(apt.consultationFee || "0")), 0
+  const totalRevenue = completedAppointments.reduce(
+    (sum: number, apt: any) => sum + parseFloat(apt.consultationFee || "0"),
+    0
   );
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Header */}
         <Card className="mb-8">
@@ -131,9 +206,14 @@ export default function DoctorDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Avatar className="w-16 h-16 mr-4">
-                  <AvatarImage src={user?.profileImageUrl || ""} alt="Profile" />
+                  <AvatarImage
+                    src={user?.profileImageUrl || ""}
+                    alt="Profile"
+                  />
                   <AvatarFallback>
-                    {user?.firstName?.charAt(0) || user?.email?.charAt(0) || "D"}
+                    {user?.firstName?.charAt(0) ||
+                      user?.email?.charAt(0) ||
+                      "D"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -141,16 +221,25 @@ export default function DoctorDashboard() {
                     Dr. {user?.firstName || ""} {user?.lastName || ""}
                   </h1>
                   <p className="text-gray-600">
-                    {(user as any)?.doctorProfile?.specialty || "Healthcare Professional"}
+                    {(user as any)?.doctorProfile?.specialty ||
+                      "Healthcare Professional"}
                   </p>
                   <div className="flex items-center mt-1">
                     <Badge variant="secondary" className="mr-2">
-                      {(user as any)?.doctorProfile?.isVerified ? "Verified" : "Pending Verification"}
+                      {(user as any)?.doctorProfile?.isVerified
+                        ? "Verified"
+                        : "Pending Verification"}
                     </Badge>
-                    <Badge variant={
-                      (user as any)?.doctorProfile?.isAvailable ? "default" : "secondary"
-                    }>
-                      {(user as any)?.doctorProfile?.isAvailable ? "Available" : "Offline"}
+                    <Badge
+                      variant={
+                        (user as any)?.doctorProfile?.isAvailable
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {(user as any)?.doctorProfile?.isAvailable
+                        ? "Available"
+                        : "Offline"}
                     </Badge>
                   </div>
                 </div>
@@ -169,8 +258,12 @@ export default function DoctorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                  <p className="text-2xl font-bold text-gray-900">{todayAppointments.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Today's Appointments
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {todayAppointments.length}
+                  </p>
                 </div>
                 <Calendar className="h-8 w-8 text-primary" />
               </div>
@@ -181,8 +274,12 @@ export default function DoctorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Patients</p>
-                  <p className="text-2xl font-bold text-gray-900">{completedAppointments.length}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Patients
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {completedAppointments.length}
+                  </p>
                 </div>
                 <Users className="h-8 w-8 text-primary" />
               </div>
@@ -193,8 +290,12 @@ export default function DoctorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">${totalRevenue.toFixed(2)}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Monthly Revenue
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    ${totalRevenue.toFixed(2)}
+                  </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-primary" />
               </div>
@@ -205,7 +306,9 @@ export default function DoctorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg Rating</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg Rating
+                  </p>
                   <p className="text-2xl font-bold text-gray-900">
                     {(user as any)?.doctorProfile?.rating || "N/A"}
                   </p>
@@ -260,14 +363,16 @@ export default function DoctorDashboard() {
               <CardContent>
                 {upcomingAppointments.length > 0 ? (
                   <div className="space-y-4">
-                    {upcomingAppointments.slice(0, 5).map((appointment: any) => (
-                      <AppointmentCard
-                        key={appointment.id}
-                        appointment={appointment}
-                        userRole="doctor"
-                        onJoinCall={(id) => joinCallMutation.mutate(id)}
-                      />
-                    ))}
+                    {upcomingAppointments
+                      .slice(0, 5)
+                      .map((appointment: any) => (
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          userRole="doctor"
+                          onJoinCall={(id) => joinCallMutation.mutate(id)}
+                        />
+                      ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -337,11 +442,15 @@ export default function DoctorDashboard() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Appointments</span>
-                  <span className="font-medium text-primary">{appointments.length}</span>
+                  <span className="font-medium text-primary">
+                    {(appointments as any[]).length}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Revenue</span>
-                  <span className="font-medium text-medical-green">${totalRevenue.toFixed(2)}</span>
+                  <span className="font-medium text-medical-green">
+                    ${totalRevenue.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Rating</span>
