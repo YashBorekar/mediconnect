@@ -5,19 +5,51 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Heart } from "lucide-react";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [, setLocation] = useLocation();
+  const specialties = [
+    "Cardiologist",
+    "Dermatologist",
+    "Pediatrician",
+    "Orthopedist",
+    "Psychiatrist",
+    "Radiologist",
+    "Surgeon",
+    "Urologist",
+    "General Physician",
+    "Endocrinologist",
+    "Gastroenterologist",
+    "Oncologist",
+    "Neurologist",
+    "Dentist",
+    "ENT Specialist",
+    "Ophthalmologist",
+    "Other",
+  ];
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     firstName: "",
     lastName: "",
     role: "patient" as "patient" | "doctor",
+    specialty: "",
+    education: "",
+    hospital: "",
+    experience: "",
+    consultationFee: "",
+    bio: "",
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -32,26 +64,28 @@ export default function Auth() {
         },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const error = await response.text();
         throw new Error(error || "Authentication failed");
       }
-      
+
       return await response.json();
     },
     onSuccess: (data) => {
       // Store token in localStorage
       localStorage.setItem("token", data.token);
-      
+
       // Invalidate user query to refetch
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      
+
       toast({
         title: "Success",
-        description: isLogin ? "Logged in successfully!" : "Account created successfully!",
+        description: isLogin
+          ? "Logged in successfully!"
+          : "Account created successfully!",
       });
-      
+
       // Redirect to dashboard
       setLocation("/");
     },
@@ -70,7 +104,7 @@ export default function Auth() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -118,7 +152,9 @@ export default function Auth() {
                   type="password"
                   required
                   value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   placeholder="Enter your password"
                 />
               </div>
@@ -131,7 +167,9 @@ export default function Auth() {
                       id="firstName"
                       required
                       value={formData.firstName}
-                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("firstName", e.target.value)
+                      }
                       placeholder="Enter your first name"
                     />
                   </div>
@@ -142,14 +180,21 @@ export default function Auth() {
                       id="lastName"
                       required
                       value={formData.lastName}
-                      onChange={(e) => handleInputChange("lastName", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("lastName", e.target.value)
+                      }
                       placeholder="Enter your last name"
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="role">Role</Label>
-                    <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) =>
+                        handleInputChange("role", value)
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
@@ -159,6 +204,97 @@ export default function Auth() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {formData.role === "doctor" && (
+                    <>
+                      <div>
+                        <Label htmlFor="specialty">Specialty</Label>
+                        <Select
+                          value={formData.specialty}
+                          onValueChange={(value) =>
+                            handleInputChange("specialty", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select specialty" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {specialties.map((spec) => (
+                              <SelectItem key={spec} value={spec}>
+                                {spec}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="education">Education</Label>
+                        <Input
+                          id="education"
+                          required
+                          value={formData.education}
+                          onChange={(e) =>
+                            handleInputChange("education", e.target.value)
+                          }
+                          placeholder="e.g. MBBS, MD, etc."
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="hospital">Hospital/Clinic</Label>
+                        <Input
+                          id="hospital"
+                          required
+                          value={formData.hospital}
+                          onChange={(e) =>
+                            handleInputChange("hospital", e.target.value)
+                          }
+                          placeholder="e.g. Apollo Hospital"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="experience">Years of Experience</Label>
+                        <Input
+                          id="experience"
+                          type="number"
+                          min={0}
+                          required
+                          value={formData.experience}
+                          onChange={(e) =>
+                            handleInputChange("experience", e.target.value)
+                          }
+                          placeholder="e.g. 5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="consultationFee">
+                          Consultation Fee (USD)
+                        </Label>
+                        <Input
+                          id="consultationFee"
+                          type="number"
+                          min={0}
+                          required
+                          value={formData.consultationFee}
+                          onChange={(e) =>
+                            handleInputChange("consultationFee", e.target.value)
+                          }
+                          placeholder="e.g. 100"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="bio">Bio/Description</Label>
+                        <Input
+                          id="bio"
+                          required
+                          value={formData.bio}
+                          onChange={(e) =>
+                            handleInputChange("bio", e.target.value)
+                          }
+                          placeholder="Short description about yourself"
+                        />
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 

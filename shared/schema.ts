@@ -30,8 +30,11 @@ export const users = pgTable("users", {
 // Doctor profiles
 export const doctors = pgTable("doctors", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   specialty: varchar("specialty").notNull(),
+  availableSlots: jsonb("available_slots"), // array of ISO strings
   education: varchar("education"),
   hospital: varchar("hospital"),
   experience: integer("experience"), // years
@@ -48,8 +51,12 @@ export const doctors = pgTable("doctors", {
 // Appointments
 export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
-  doctorId: integer("doctor_id").notNull().references(() => doctors.id),
+  patientId: varchar("patient_id")
+    .notNull()
+    .references(() => users.id),
+  doctorId: integer("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
   appointmentDate: timestamp("appointment_date").notNull(),
   duration: integer("duration").default(30), // minutes
   consultationType: varchar("consultation_type").default("video"), // video, audio
@@ -64,7 +71,9 @@ export const appointments = pgTable("appointments", {
 // Health records
 export const healthRecords = pgTable("health_records", {
   id: serial("id").primaryKey(),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
+  patientId: varchar("patient_id")
+    .notNull()
+    .references(() => users.id),
   doctorId: integer("doctor_id").references(() => doctors.id),
   appointmentId: integer("appointment_id").references(() => appointments.id),
   recordType: varchar("record_type").notNull(), // exam, test, prescription, etc.
@@ -79,7 +88,9 @@ export const healthRecords = pgTable("health_records", {
 // Symptom analyses
 export const symptomAnalyses = pgTable("symptom_analyses", {
   id: serial("id").primaryKey(),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
+  patientId: varchar("patient_id")
+    .notNull()
+    .references(() => users.id),
   symptoms: text("symptoms").notNull(),
   age: varchar("age"),
   gender: varchar("gender"),
@@ -138,12 +149,15 @@ export const healthRecordsRelations = relations(healthRecords, ({ one }) => ({
   }),
 }));
 
-export const symptomAnalysesRelations = relations(symptomAnalyses, ({ one }) => ({
-  patient: one(users, {
-    fields: [symptomAnalyses.patientId],
-    references: [users.id],
-  }),
-}));
+export const symptomAnalysesRelations = relations(
+  symptomAnalyses,
+  ({ one }) => ({
+    patient: one(users, {
+      fields: [symptomAnalyses.patientId],
+      references: [users.id],
+    }),
+  })
+);
 
 // Types
 export type InsertUser = typeof users.$inferInsert;
@@ -168,13 +182,15 @@ export const insertDoctorSchema = createInsertSchema(doctors).omit({
   updatedAt: true,
 });
 
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  appointmentDate: z.string().transform((str) => new Date(str)),
-});
+export const insertAppointmentSchema = createInsertSchema(appointments)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    appointmentDate: z.string().transform((str) => new Date(str)),
+  });
 
 export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   id: true,
@@ -182,7 +198,9 @@ export const insertHealthRecordSchema = createInsertSchema(healthRecords).omit({
   updatedAt: true,
 });
 
-export const insertSymptomAnalysisSchema = createInsertSchema(symptomAnalyses).omit({
+export const insertSymptomAnalysisSchema = createInsertSchema(
+  symptomAnalyses
+).omit({
   id: true,
   createdAt: true,
 });

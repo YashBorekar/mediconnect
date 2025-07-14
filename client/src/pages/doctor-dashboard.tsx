@@ -14,6 +14,92 @@ import { Calendar, Users, DollarSign, Clock, Settings } from "lucide-react";
 import { useEffect } from "react";
 
 export default function DoctorDashboard() {
+  // Modal state for schedule management
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>(
+    doctorProfile?.availableSlots || []
+  );
+
+  const addSlot = (slot: string) => {
+    if (!availableSlots.includes(slot)) {
+      setAvailableSlots([...availableSlots, slot]);
+    }
+  };
+  const removeSlot = (slot: string) => {
+    setAvailableSlots(availableSlots.filter((s) => s !== slot));
+  };
+
+  const saveSlotsMutation = useMutation({
+    mutationFn: async (slots: string[]) => {
+      const response = await apiRequest(`/api/doctors/${doctorProfile?.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ availableSlots: slots }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({ title: "Success", description: "Availability updated" });
+      setShowScheduleModal(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update availability",
+        variant: "destructive",
+      });
+    },
+  });
+  // Modal state for editing profile
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState<any>(doctorProfile || {});
+
+  const specialties = [
+    "Cardiologist",
+    "Dermatologist",
+    "Pediatrician",
+    "Orthopedist",
+    "Psychiatrist",
+    "Radiologist",
+    "Surgeon",
+    "Urologist",
+    "General Physician",
+    "Endocrinologist",
+    "Gastroenterologist",
+    "Oncologist",
+    "Neurologist",
+    "Dentist",
+    "ENT Specialist",
+    "Ophthalmologist",
+    "Other",
+  ];
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: any) => {
+      const response = await apiRequest(`/api/doctors/${doctorProfile?.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      setShowEditModal(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    },
+  });
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -198,6 +284,192 @@ export default function DoctorDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      {/* Edit Profile Modal */}
+      {/* Schedule Management Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
+            <h2 className="text-xl font-bold mb-4">Manage Availability</h2>
+            <div className="space-y-2 mb-4">
+              <label className="block font-medium mb-2">
+                Add Available Time Slot (e.g. 2025-07-15T09:00)
+              </label>
+              <input
+                type="datetime-local"
+                className="w-full border rounded p-2"
+                onChange={(e) => addSlot(e.target.value)}
+              />
+            </div>
+            <div className="mb-4">
+              <h3 className="font-semibold mb-2">Current Available Slots</h3>
+              <ul className="space-y-1">
+                {availableSlots.map((slot) => (
+                  <li key={slot} className="flex items-center justify-between">
+                    <span>{slot}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => removeSlot(slot)}
+                    >
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => saveSlotsMutation.mutate(availableSlots)}
+                disabled={saveSlotsMutation.isPending}
+              >
+                {saveSlotsMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowScheduleModal(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
+            <h2 className="text-xl font-bold mb-4">Edit Profile</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateProfileMutation.mutate(editData);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block mb-1 font-medium">Specialty</label>
+                <select
+                  className="w-full border rounded p-2"
+                  value={editData.specialty || ""}
+                  onChange={(e) =>
+                    setEditData((d: any) => ({
+                      ...d,
+                      specialty: e.target.value,
+                    }))
+                  }
+                >
+                  {specialties.map((spec) => (
+                    <option key={spec} value={spec}>
+                      {spec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 font-medium">Education</label>
+                <input
+                  className="w-full border rounded p-2"
+                  value={editData.education || ""}
+                  onChange={(e) =>
+                    setEditData((d: any) => ({
+                      ...d,
+                      education: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium">
+                  Hospital/Clinic
+                </label>
+                <input
+                  className="w-full border rounded p-2"
+                  value={editData.hospital || ""}
+                  onChange={(e) =>
+                    setEditData((d: any) => ({
+                      ...d,
+                      hospital: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium">
+                  Years of Experience
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className="w-full border rounded p-2"
+                  value={editData.experience || ""}
+                  onChange={(e) =>
+                    setEditData((d: any) => ({
+                      ...d,
+                      experience: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium">
+                  Consultation Fee (USD)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className="w-full border rounded p-2"
+                  value={editData.consultationFee || ""}
+                  onChange={(e) =>
+                    setEditData((d: any) => ({
+                      ...d,
+                      consultationFee: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium">
+                  Bio/Description
+                </label>
+                <input
+                  className="w-full border rounded p-2"
+                  value={editData.bio || ""}
+                  onChange={(e) =>
+                    setEditData((d: any) => ({ ...d, bio: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Header */}
@@ -247,6 +519,16 @@ export default function DoctorDashboard() {
               <Button variant="outline">
                 <Settings className="mr-2 h-4 w-4" />
                 Profile Settings
+              </Button>
+              <Button
+                variant="outline"
+                className="ml-2"
+                onClick={() => {
+                  setEditData(doctorProfile);
+                  setShowEditModal(true);
+                }}
+              >
+                Edit Profile
               </Button>
             </div>
           </CardContent>
@@ -409,6 +691,13 @@ export default function DoctorDashboard() {
                 </div>
                 <Button variant="outline" className="w-full mt-4">
                   Update Availability
+                </Button>
+                <Button
+                  variant="outline"
+                  className="ml-2"
+                  onClick={() => setShowScheduleModal(true)}
+                >
+                  Manage Schedule
                 </Button>
               </CardContent>
             </Card>
