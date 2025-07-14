@@ -17,6 +17,95 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health Records CRUD
+  app.post(
+    "/api/health-records",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const recordData = insertHealthRecordSchema.parse({
+          ...req.body,
+          patientId: req.userId,
+        });
+        const record = await storage.createHealthRecord(recordData);
+        res.status(201).json(record);
+      } catch (error) {
+        console.error("Error creating health record:", error);
+        res.status(500).json({ message: "Failed to create health record" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/health-records",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const user = req.user;
+        let records: any[] = [];
+        if (user?.role === "doctor") {
+          const doctorProfile = await storage.getDoctorProfile(req.userId!);
+          if (doctorProfile) {
+            records = await storage.getHealthRecordsByDoctor(doctorProfile.id);
+          }
+        } else {
+          records = await storage.getHealthRecordsByPatient(req.userId!);
+        }
+        res.json(records);
+      } catch (error) {
+        console.error("Error fetching health records:", error);
+        res.status(500).json({ message: "Failed to fetch health records" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/health-records/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const recordId = parseInt(req.params.id);
+        const record = await storage.getHealthRecordById(recordId);
+        if (!record)
+          return res.status(404).json({ message: "Health record not found" });
+        res.json(record);
+      } catch (error) {
+        console.error("Error fetching health record:", error);
+        res.status(500).json({ message: "Failed to fetch health record" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/health-records/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const recordId = parseInt(req.params.id);
+        const updates = insertHealthRecordSchema.partial().parse(req.body);
+        const record = await storage.updateHealthRecord(recordId, updates);
+        res.json(record);
+      } catch (error) {
+        console.error("Error updating health record:", error);
+        res.status(500).json({ message: "Failed to update health record" });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/health-records/:id",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const recordId = parseInt(req.params.id);
+        await storage.deleteHealthRecord(recordId);
+        res.status(204).end();
+      } catch (error) {
+        console.error("Error deleting health record:", error);
+        res.status(500).json({ message: "Failed to delete health record" });
+      }
+    }
+  );
   // Auth routes
   app.use("/api/auth", authRoutes);
 
@@ -147,11 +236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const user = req.user;
         if (!user || user.role !== "doctor") {
-          return res
-            .status(403)
-            .json({
-              message: "Access denied. Only doctors can create profiles.",
-            });
+          return res.status(403).json({
+            message: "Access denied. Only doctors can create profiles.",
+          });
         }
 
         // Check if profile already exists
