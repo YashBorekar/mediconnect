@@ -757,6 +757,15 @@ export default function DoctorDashboard() {
           </div>
 
           {/* Sidebar */}
+            {/* Doctor Verification Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Verification Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VerificationStatus />
+              </CardContent>
+            </Card>
             {/* Prescriptions */}
             <Card>
               <CardHeader>
