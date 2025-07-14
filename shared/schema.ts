@@ -70,6 +70,24 @@ export const appointments = pgTable("appointments", {
 
 // Health records
 // Messages
+// Prescriptions
+export const prescriptions = pgTable("prescriptions", {
+  id: serial("id").primaryKey(),
+  patientId: varchar("patient_id")
+    .notNull()
+    .references(() => users.id),
+  doctorId: integer("doctor_id")
+    .notNull()
+    .references(() => doctors.id),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  medication: varchar("medication").notNull(),
+  dosage: varchar("dosage"),
+  instructions: text("instructions"),
+  refillRequested: boolean("refill_requested").default(false),
+  refillApproved: boolean("refill_approved").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   senderId: varchar("sender_id")

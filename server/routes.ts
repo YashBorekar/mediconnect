@@ -17,6 +17,85 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Prescription CRUD
+  app.post(
+    "/api/prescriptions",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const { doctorId, appointmentId, medication, dosage, instructions } =
+          req.body;
+        if (!doctorId || !medication)
+          return res.status(400).json({ message: "Missing fields" });
+        const prescription = await storage.createPrescription({
+          patientId: req.userId,
+          doctorId,
+          appointmentId,
+          medication,
+          dosage,
+          instructions,
+        });
+        res.status(201).json(prescription);
+      } catch (error) {
+        console.error("Error creating prescription:", error);
+        res.status(500).json({ message: "Failed to create prescription" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/prescriptions",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const user = req.user;
+        let prescriptions: any[] = [];
+        if (user?.role === "doctor") {
+          const doctorProfile = await storage.getDoctorProfile(req.userId!);
+          if (doctorProfile) {
+            prescriptions = await storage.getPrescriptionsByDoctor(
+              doctorProfile.id
+            );
+          }
+        } else {
+          prescriptions = await storage.getPrescriptionsByPatient(req.userId!);
+        }
+        res.json(prescriptions);
+      } catch (error) {
+        console.error("Error fetching prescriptions:", error);
+        res.status(500).json({ message: "Failed to fetch prescriptions" });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/prescriptions/:id/refill",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const prescriptionId = parseInt(req.params.id);
+        const { action } = req.body; // "request", "approve", "deny"
+        let updates: any = {};
+        if (action === "request") updates.refillRequested = true;
+        if (action === "approve") {
+          updates.refillRequested = false;
+          updates.refillApproved = true;
+        }
+        if (action === "deny") {
+          updates.refillRequested = false;
+          updates.refillApproved = false;
+        }
+        const prescription = await storage.updatePrescription(
+          prescriptionId,
+          updates
+        );
+        res.json(prescription);
+      } catch (error) {
+        console.error("Error updating prescription:", error);
+        res.status(500).json({ message: "Failed to update prescription" });
+      }
+    }
+  );
   // Messaging CRUD
   app.post(
     "/api/messages",

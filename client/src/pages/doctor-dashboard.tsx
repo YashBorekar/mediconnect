@@ -14,6 +14,31 @@ import { Calendar, Users, DollarSign, Clock, Settings } from "lucide-react";
 import { useEffect } from "react";
 
 export default function DoctorDashboard() {
+  // Prescriptions state
+  const { data: prescriptions = [], isLoading: prescriptionsLoading } = useQuery<any[]>({
+    queryKey: ["/api/prescriptions"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/prescriptions");
+      return response.json();
+    },
+  });
+
+  const approveRefillMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: number; action: "approve" | "deny" }) => {
+      await apiRequest(`/api/prescriptions/${id}/refill`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prescriptions"] });
+      toast({ title: "Updated", description: "Refill status updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update refill", variant: "destructive" });
+    },
+  });
   // Health records state
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -189,7 +214,7 @@ export default function DoctorDashboard() {
       setActiveCallId(appointmentId);
     },
   // State for active video call
-  const [activeCallId, setActiveCallId] = useState<number | null>(null);
+  const [activeCallId, setActiveCallId] = useState<null | number>(null);
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
@@ -732,6 +757,47 @@ export default function DoctorDashboard() {
           </div>
 
           {/* Sidebar */}
+            {/* Prescriptions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Prescriptions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {prescriptionsLoading ? (
+                  <div>Loading...</div>
+                ) : prescriptions.length > 0 ? (
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2">Medication</th>
+                        <th className="p-2">Patient</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {prescriptions.map((rx) => (
+                        <tr key={rx.id} className="border-t">
+                          <td className="p-2">{rx.medication}</td>
+                          <td className="p-2">{rx.patientId}</td>
+                          <td className="p-2">{rx.refillRequested ? "Refill Requested" : rx.refillApproved ? "Refill Approved" : "Active"}</td>
+                          <td className="p-2 flex gap-2">
+                            {rx.refillRequested && !rx.refillApproved && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => approveRefillMutation.mutate({ id: rx.id, action: "approve" })}>Approve</Button>
+                                <Button size="sm" variant="destructive" onClick={() => approveRefillMutation.mutate({ id: rx.id, action: "deny" })}>Deny</Button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div>No prescriptions found.</div>
+                )}
+              </CardContent>
+            </Card>
             {/* Secure Messaging */}
             <Card>
               <CardHeader>
