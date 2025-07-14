@@ -732,6 +732,20 @@ export default function DoctorDashboard() {
           </div>
 
           {/* Sidebar */}
+            {/* Secure Messaging */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Secure Messaging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* For demo: chat with first patient from upcoming appointments */}
+                {upcomingAppointments.length > 0 ? (
+                  <Chat receiverId={upcomingAppointments[0].patientId} appointmentId={upcomingAppointments[0].id} />
+                ) : (
+                  <div>No patients to message.</div>
+                )}
+              </CardContent>
+            </Card>
             {/* Health Records */}
             <Card>
               <CardHeader>

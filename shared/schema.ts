@@ -69,6 +69,20 @@ export const appointments = pgTable("appointments", {
 });
 
 // Health records
+// Messages
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: varchar("sender_id")
+    .notNull()
+    .references(() => users.id),
+  receiverId: varchar("receiver_id")
+    .notNull()
+    .references(() => users.id),
+  appointmentId: integer("appointment_id").references(() => appointments.id),
+  content: text("content").notNull(),
+  sentAt: timestamp("sent_at").defaultNow(),
+  isRead: boolean("is_read").default(false),
+});
 export const healthRecords = pgTable("health_records", {
   id: serial("id").primaryKey(),
   patientId: varchar("patient_id")

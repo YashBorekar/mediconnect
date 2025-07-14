@@ -17,6 +17,47 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Messaging CRUD
+  app.post(
+    "/api/messages",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const { receiverId, appointmentId, content } = req.body;
+        if (!receiverId || !content)
+          return res.status(400).json({ message: "Missing fields" });
+        const message = await storage.createMessage({
+          senderId: req.userId,
+          receiverId,
+          appointmentId,
+          content,
+        });
+        res.status(201).json(message);
+      } catch (error) {
+        console.error("Error sending message:", error);
+        res.status(500).json({ message: "Failed to send message" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/messages",
+    authenticateToken,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const { appointmentId, withUser } = req.query;
+        const messages = await storage.getMessages({
+          userId: req.userId,
+          appointmentId,
+          withUser,
+        });
+        res.json(messages);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ message: "Failed to fetch messages" });
+      }
+    }
+  );
   // Health Records CRUD
   app.post(
     "/api/health-records",

@@ -376,6 +376,23 @@ export default function PatientDashboard() {
           </div>
 
           {/* Sidebar */}
+          {/* Secure Messaging */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Secure Messaging</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* For demo: chat with first doctor from upcoming appointments */}
+              {upcomingAppointments.length > 0 ? (
+                <Chat
+                  receiverId={upcomingAppointments[0].doctorId}
+                  appointmentId={upcomingAppointments[0].id}
+                />
+              ) : (
+                <div>No doctors to message.</div>
+              )}
+            </CardContent>
+          </Card>
           <div className="space-y-6">
             {/* Quick Actions */}
             <Card>
