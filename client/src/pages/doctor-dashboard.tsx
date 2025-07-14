@@ -14,6 +14,62 @@ import { Calendar, Users, DollarSign, Clock, Settings } from "lucide-react";
 import { useEffect } from "react";
 
 export default function DoctorDashboard() {
+  // Health records state
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+
+  // Fetch health records
+  const { data: healthRecords = [], isLoading: recordsLoading } = useQuery<any[]>({
+    queryKey: ["/api/health-records"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/health-records");
+      return response.json();
+    },
+  });
+
+  // Create/update health record mutation
+  const saveRecordMutation = useMutation({
+    mutationFn: async (record: any) => {
+      if (record.id) {
+        const response = await apiRequest(`/api/health-records/${record.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+        return response.json();
+      } else {
+        const response = await apiRequest("/api/health-records", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+        return response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      setShowRecordModal(false);
+      setEditingRecord(null);
+      toast({ title: "Success", description: "Health record saved" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save record", variant: "destructive" });
+    },
+  });
+
+  // Delete health record mutation
+  const deleteRecordMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest(`/api/health-records/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/health-records"] });
+      toast({ title: "Deleted", description: "Health record deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete record", variant: "destructive" });
+    },
+  });
   // Modal state for schedule management
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>(
@@ -133,7 +189,7 @@ export default function DoctorDashboard() {
       setActiveCallId(appointmentId);
     },
   // State for active video call
-  const [activeCallId, setActiveCallId] = useState<null | number>(null);
+  const [activeCallId, setActiveCallId] = useState<number | null>(null);
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
@@ -676,6 +732,99 @@ export default function DoctorDashboard() {
           </div>
 
           {/* Sidebar */}
+            {/* Health Records */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Health Records</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => { setEditingRecord(null); setShowRecordModal(true); }}>
+                    Add Record
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {recordsLoading ? (
+                  <div>Loading...</div>
+                ) : healthRecords.length > 0 ? (
+                  <table className="w-full text-sm border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2">Type</th>
+                        <th className="p-2">Title</th>
+                        <th className="p-2">Patient</th>
+                        <th className="p-2">Date</th>
+                        <th className="p-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {healthRecords.map((rec) => (
+                        <tr key={rec.id} className="border-t">
+                          <td className="p-2">{rec.recordType}</td>
+                          <td className="p-2">{rec.title}</td>
+                          <td className="p-2">{rec.patientId || "-"}</td>
+                          <td className="p-2">{rec.createdAt ? new Date(rec.createdAt).toLocaleDateString() : "-"}</td>
+                          <td className="p-2 flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => { setEditingRecord(rec); setShowRecordModal(true); }}>Edit</Button>
+                            <Button size="sm" variant="destructive" onClick={() => deleteRecordMutation.mutate(rec.id)}>Delete</Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div>No health records found.</div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Health Record Modal */}
+            {showRecordModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
+                  <h2 className="text-xl font-bold mb-4">{editingRecord ? "Edit" : "Add"} Health Record</h2>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      const form = e.target as HTMLFormElement;
+                      const formData = new FormData(form);
+                      const record = {
+                        id: editingRecord?.id,
+                        recordType: formData.get("recordType"),
+                        title: formData.get("title"),
+                        description: formData.get("description"),
+                        isPrivate: formData.get("isPrivate") === "on",
+                      };
+                      saveRecordMutation.mutate(record);
+                    }}
+                  >
+                    <div className="mb-4">
+                      <label className="block font-medium mb-1">Type</label>
+                      <input name="recordType" defaultValue={editingRecord?.recordType || "exam"} className="w-full border rounded p-2" required />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block font-medium mb-1">Title</label>
+                      <input name="title" defaultValue={editingRecord?.title || ""} className="w-full border rounded p-2" required />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block font-medium mb-1">Description</label>
+                      <textarea name="description" defaultValue={editingRecord?.description || ""} className="w-full border rounded p-2" />
+                    </div>
+                    <div className="mb-4 flex items-center gap-2">
+                      <input type="checkbox" name="isPrivate" defaultChecked={editingRecord?.isPrivate} />
+                      <label>Private</label>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button type="submit" className="flex-1" disabled={saveRecordMutation.isPending}>
+                        {saveRecordMutation.isPending ? "Saving..." : "Save"}
+                      </Button>
+                      <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowRecordModal(false); setEditingRecord(null); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           <div className="space-y-6">
             {/* Schedule Overview */}
             <Card>
