@@ -10,7 +10,13 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import AppointmentCard from "@/components/appointment-card";
 import { Link } from "wouter";
-import { Plus, FileText, Stethoscope, MessageSquare, Activity } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  Stethoscope,
+  MessageSquare,
+  Activity,
+} from "lucide-react";
 import { useEffect } from "react";
 
 export default function PatientDashboard() {
@@ -110,8 +116,9 @@ export default function PatientDashboard() {
     );
   }
 
-  const upcomingAppointments = appointments.filter((apt: any) => 
-    new Date(apt.appointmentDate) > new Date() && apt.status === "scheduled"
+  const upcomingAppointments = appointments.filter(
+    (apt: any) =>
+      new Date(apt.appointmentDate) > new Date() && apt.status === "scheduled"
   );
 
   const recentRecords = healthRecords.slice(0, 3);
@@ -119,7 +126,7 @@ export default function PatientDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Header */}
         <Card className="mb-8">
@@ -127,16 +134,23 @@ export default function PatientDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Avatar className="w-16 h-16 mr-4">
-                  <AvatarImage src={user?.profileImageUrl || ""} alt="Profile" />
+                  <AvatarImage
+                    src={user?.profileImageUrl || ""}
+                    alt="Profile"
+                  />
                   <AvatarFallback>
-                    {user?.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                    {user?.firstName?.charAt(0) ||
+                      user?.email?.charAt(0) ||
+                      "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
                     Welcome back, {user?.firstName || "there"}
                   </h1>
-                  <p className="text-gray-600">Manage your health and appointments</p>
+                  <p className="text-gray-600">
+                    Manage your health and appointments
+                  </p>
                 </div>
               </div>
               <Button asChild>
@@ -169,20 +183,35 @@ export default function PatientDashboard() {
                 ) : upcomingAppointments.length > 0 ? (
                   <div className="space-y-4">
                     {upcomingAppointments.map((appointment: any) => (
-                      <AppointmentCard
-                        key={appointment.id}
-                        appointment={appointment}
-                        userRole="patient"
-                        onJoinCall={(id) => joinCallMutation.mutate(id)}
-                        onCancel={(id) => cancelAppointmentMutation.mutate(id)}
-                      />
+                      <div key={appointment.id}>
+                        <AppointmentCard
+                          appointment={appointment}
+                          userRole="patient"
+                          onJoinCall={(id) => joinCallMutation.mutate(id)}
+                          onCancel={(id) =>
+                            cancelAppointmentMutation.mutate(id)
+                          }
+                        />
+                        {activeCallId === appointment.id && (
+                          <div className="my-4">
+                            <VideoCall
+                              roomId={`appointment-${appointment.id}`}
+                              userRole="patient"
+                            />
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">No upcoming appointments</p>
+                    <p className="text-gray-500 mb-4">
+                      No upcoming appointments
+                    </p>
                     <Button asChild>
-                      <Link href="/find-doctors">Book Your First Appointment</Link>
+                      <Link href="/find-doctors">
+                        Book Your First Appointment
+                      </Link>
                     </Button>
                   </div>
                 )}
@@ -194,7 +223,9 @@ export default function PatientDashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Recent Health Records</CardTitle>
-                  <Button variant="ghost" size="sm">View All</Button>
+                  <Button variant="ghost" size="sm">
+                    View All
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -209,13 +240,18 @@ export default function PatientDashboard() {
                 ) : recentRecords.length > 0 ? (
                   <div className="space-y-4">
                     {recentRecords.map((record: any) => (
-                      <div key={record.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                      >
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
                             <FileText className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <h4 className="font-medium text-gray-900">{record.title}</h4>
+                            <h4 className="font-medium text-gray-900">
+                              {record.title}
+                            </h4>
                             <p className="text-sm text-gray-600">
                               {new Date(record.createdAt).toLocaleDateString()}
                             </p>
@@ -244,7 +280,11 @@ export default function PatientDashboard() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start" asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  asChild
+                >
                   <Link href="/symptom-checker">
                     <Stethoscope className="mr-3 h-4 w-4" />
                     Check Symptoms
