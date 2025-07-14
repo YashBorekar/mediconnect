@@ -130,12 +130,10 @@ export default function DoctorDashboard() {
 
   const joinCallMutation = useMutation({
     mutationFn: async (appointmentId: number) => {
-      // Mock video call functionality
-      toast({
-        title: "Joining Call",
-        description: "Connecting to video consultation...",
-      });
+      setActiveCallId(appointmentId);
     },
+  // State for active video call
+  const [activeCallId, setActiveCallId] = useState<null | number>(null);
     onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
@@ -621,12 +619,18 @@ export default function DoctorDashboard() {
                 ) : todayAppointments.length > 0 ? (
                   <div className="space-y-4">
                     {todayAppointments.map((appointment: any) => (
-                      <AppointmentCard
-                        key={appointment.id}
-                        appointment={appointment}
-                        userRole="doctor"
-                        onJoinCall={(id) => joinCallMutation.mutate(id)}
-                      />
+    <div key={appointment.id}>
+      <AppointmentCard
+        appointment={appointment}
+        userRole="doctor"
+        onJoinCall={(id) => joinCallMutation.mutate(id)}
+      />
+      {activeCallId === appointment.id && (
+        <div className="my-4">
+          <VideoCall roomId={`appointment-${appointment.id}`} userRole="doctor" />
+        </div>
+      )}
+    </div>
                     ))}
                   </div>
                 ) : (
@@ -646,15 +650,21 @@ export default function DoctorDashboard() {
                 {upcomingAppointments.length > 0 ? (
                   <div className="space-y-4">
                     {upcomingAppointments
-                      .slice(0, 5)
-                      .map((appointment: any) => (
-                        <AppointmentCard
-                          key={appointment.id}
-                          appointment={appointment}
-                          userRole="doctor"
-                          onJoinCall={(id) => joinCallMutation.mutate(id)}
-                        />
-                      ))}
+    .slice(0, 5)
+    .map((appointment: any) => (
+      <div key={appointment.id}>
+        <AppointmentCard
+          appointment={appointment}
+          userRole="doctor"
+          onJoinCall={(id) => joinCallMutation.mutate(id)}
+        />
+        {activeCallId === appointment.id && (
+          <div className="my-4">
+            <VideoCall roomId={`appointment-${appointment.id}`} userRole="doctor" />
+          </div>
+        )}
+      </div>
+    ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
