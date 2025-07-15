@@ -12,6 +12,7 @@ import DoctorDashboard from "@/pages/doctor-dashboard";
 import FindDoctors from "@/pages/find-doctors";
 import SymptomChecker from "@/pages/symptom-checker";
 import BookAppointment from "@/pages/book-appointment";
+import AdminVerifications from "@/pages/admin-verifications";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -35,6 +36,12 @@ function Router() {
       <Route
         path="/doctor-dashboard"
         component={isAuthenticated ? DoctorDashboard : Auth}
+      />
+      <Route
+        path="/admin-verifications"
+        component={
+          isAuthenticated && user?.role === "admin" ? AdminVerifications : Auth
+        }
       />
       <Route path="/find-doctors" component={FindDoctors} />
       <Route path="/symptom-checker" component={SymptomChecker} />

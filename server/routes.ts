@@ -88,6 +88,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           verificationId,
           updates
         );
+
+        // If approved, update the doctor's isVerified status
+        if (status === "approved" && request) {
+          await storage.updateDoctorProfile(request.doctorId, {
+            isVerified: true,
+          });
+        }
+        // If denied, set isVerified to false
+        else if (status === "denied" && request) {
+          await storage.updateDoctorProfile(request.doctorId, {
+            isVerified: false,
+          });
+        }
+
         res.json(request);
       } catch (error) {
         console.error("Error updating verification:", error);

@@ -2,9 +2,11 @@ import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminVerifications: React.FC = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: requests = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/doctor-verifications"],
     queryFn: async () => {
@@ -23,15 +25,37 @@ const AdminVerifications: React.FC = () => {
       status: string;
       notes?: string;
     }) => {
-      await apiRequest(`/api/doctor-verifications/${id}`, {
+      console.log("Making verification request:", { id, status, notes });
+      const response = await apiRequest(`/api/doctor-verifications/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, notes }),
       });
+      const result = await response.json();
+      console.log("Verification response:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["/api/doctor-verifications"],
+      });
+      // Also invalidate user queries to update doctor profiles
+      queryClient.invalidateQueries({
+        queryKey: ["/api/auth/user"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/doctors"],
+      });
+      toast({
+        title: "Success",
+        description: "Verification status updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Verification update error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update verification status",
+        variant: "destructive",
       });
     },
   });

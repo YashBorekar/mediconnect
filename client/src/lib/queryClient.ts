@@ -14,6 +14,14 @@ export async function apiRequest(
   // Get token from localStorage
   const token = localStorage.getItem("token");
 
+  // Debug logging
+  console.log("API Request:", {
+    url,
+    method: options.method || "GET",
+    hasToken: !!token,
+    tokenPrefix: token ? token.substring(0, 20) + "..." : "none",
+  });
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
