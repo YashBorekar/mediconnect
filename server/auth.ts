@@ -1,7 +1,7 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
-import { storage } from './storage';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+import { storage } from "./storage";
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
@@ -10,17 +10,18 @@ export interface AuthenticatedRequest extends Request {
 
 // Generate JWT token
 export function generateToken(userId: string): string {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET || 'your-secret-key',
-    { expiresIn: '7d' }
-  );
+  return jwt.sign({ userId }, process.env.JWT_SECRET || "your-secret-key", {
+    expiresIn: "7d",
+  });
 }
 
 // Verify JWT token
 export function verifyToken(token: string): { userId: string } | null {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your-secret-key"
+    ) as { userId: string };
     return decoded;
   } catch (error) {
     return null;
@@ -33,7 +34,10 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 // Compare password
-export async function comparePassword(password: string, hash: string): Promise<boolean> {
+export async function comparePassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
   return await bcrypt.compare(password, hash);
 }
 
@@ -44,28 +48,36 @@ export async function authenticateToken(
   next: NextFunction
 ) {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  console.log("Auth middleware:", {
+    path: req.path,
+    method: req.method,
+    hasAuthHeader: !!authHeader,
+    authHeader: authHeader ? authHeader.substring(0, 20) + "..." : "none",
+    hasToken: !!token,
+  });
 
   if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
+    return res.status(401).json({ message: "Access token required" });
   }
 
   const decoded = verifyToken(token);
   if (!decoded) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 
   try {
     const user = await storage.getUser(decoded.userId);
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: "User not found" });
     }
 
     req.userId = decoded.userId;
     req.user = user;
     next();
   } catch (error) {
-    res.status(500).json({ message: 'Authentication error' });
+    res.status(500).json({ message: "Authentication error" });
   }
 }
 
@@ -76,7 +88,7 @@ export async function optionalAuth(
   next: NextFunction
 ) {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (token) {
     const decoded = verifyToken(token);
