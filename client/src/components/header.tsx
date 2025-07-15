@@ -9,7 +9,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Heart, Menu, User, LogOut, Calendar, FileText, Stethoscope } from "lucide-react";
+import {
+  Heart,
+  Menu,
+  User,
+  LogOut,
+  Calendar,
+  FileText,
+  Stethoscope,
+} from "lucide-react";
 
 export default function Header() {
   const { isAuthenticated, user } = useAuth();
@@ -27,6 +35,24 @@ export default function Header() {
     );
   }
 
+  // Add Doctor Dashboard link for doctors
+  if (isAuthenticated && user?.role === "doctor") {
+    navigation.unshift({
+      name: "Doctor Dashboard",
+      href: "/doctor-dashboard",
+      icon: Calendar,
+    });
+  }
+
+  // Add Admin Dashboard link for admins
+  if (isAuthenticated && user?.role === "admin") {
+    navigation.unshift({
+      name: "Admin Dashboard",
+      href: "/admin-verifications",
+      icon: User,
+    });
+  }
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,7 +60,9 @@ export default function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <Heart className="h-8 w-8 text-primary mr-2" />
-              <span className="text-xl font-bold text-gray-900">MediConnect</span>
+              <span className="text-xl font-bold text-gray-900">
+                MediConnect
+              </span>
             </Link>
           </div>
 
@@ -67,11 +95,19 @@ export default function Header() {
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.profileImageUrl || ""} alt={user?.firstName || ""} />
+                      <AvatarImage
+                        src={user?.profileImageUrl || ""}
+                        alt={user?.firstName || ""}
+                      />
                       <AvatarFallback>
-                        {user?.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                        {user?.firstName?.charAt(0) ||
+                          user?.email?.charAt(0) ||
+                          "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -80,7 +116,9 @@ export default function Header() {
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       {user?.firstName && (
-                        <p className="font-medium">{user.firstName} {user?.lastName}</p>
+                        <p className="font-medium">
+                          {user.firstName} {user?.lastName}
+                        </p>
                       )}
                       {user?.email && (
                         <p className="w-[200px] truncate text-sm text-muted-foreground">
@@ -94,7 +132,10 @@ export default function Header() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <button onClick={() => logout()} className="cursor-pointer w-full text-left">
+                    <button
+                      onClick={() => logout()}
+                      className="cursor-pointer w-full text-left"
+                    >
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
                     </button>
@@ -110,6 +151,6 @@ export default function Header() {
 }
 
 function logout() {
-  localStorage.removeItem('token');
-  window.location.href = '/auth';
+  localStorage.removeItem("token");
+  window.location.href = "/auth";
 }
