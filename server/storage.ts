@@ -17,7 +17,7 @@ import {
   doctorVerifications,
   prescriptions,
   messages,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, and, or, desc, gte, lte } from "drizzle-orm";
 

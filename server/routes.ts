@@ -13,7 +13,7 @@ import {
   insertAppointmentSchema,
   insertHealthRecordSchema,
   insertSymptomAnalysisSchema,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
