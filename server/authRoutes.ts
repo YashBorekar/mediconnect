@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { nanoid } from "nanoid";
-import { storage } from "./storage";
-import { generateToken, hashPassword, comparePassword } from "./auth";
+import { storage } from "./storage.js";
+import { generateToken, hashPassword, comparePassword } from "./auth.js";
 import { z } from "zod";
 
 const router = Router();

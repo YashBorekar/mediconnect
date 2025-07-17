@@ -1,13 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import {
   authenticateToken,
   optionalAuth,
   type AuthenticatedRequest,
-} from "./auth";
-import authRoutes from "./authRoutes";
-import { SymptomAnalysisService } from "./services/symptomAnalysis";
+} from "./auth.js";
+import authRoutes from "./authRoutes.js";
+import { SymptomAnalysisService } from "./services/symptomAnalysis.js";
 import {
   insertDoctorSchema,
   insertAppointmentSchema,

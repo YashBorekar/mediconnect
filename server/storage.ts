@@ -18,7 +18,7 @@ import {
   prescriptions,
   messages,
 } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and, or, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {

@@ -1,7 +1,30 @@
-node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+# Dependencies
+/node_modules/
+
+# Build Outputs & Cache
+/dist/
+/.vite/
+/vite.config.ts.*
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+
+# Environment Variables
+# Ignore all .env files, but not the example file.
 .env
+.env.*
+!.env.example
+
+# Editor & OS Files
+.vscode/
+.DS_Store
+
+# Test Coverage
+/coverage/
+
+# Archives
+*.tar.gz
+
+# Project Specific
+/server/public
