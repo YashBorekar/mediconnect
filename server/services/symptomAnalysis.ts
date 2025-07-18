@@ -1,6 +1,3 @@
-import { config } from "dotenv";
-config();
-
 interface SymptomInput {
   symptoms: string;
   age: string;
