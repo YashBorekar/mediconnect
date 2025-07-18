@@ -20,6 +20,7 @@ export async function apiRequest(
     method: options.method || "GET",
     hasToken: !!token,
     tokenPrefix: token ? token.substring(0, 20) + "..." : "none",
+    willSendAuthHeader: !!token,
   });
 
   const headers: Record<string, string> = {
@@ -31,6 +32,9 @@ export async function apiRequest(
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
+
+  // Debug: log final headers
+  console.log("Final headers:", headers);
 
   const res = await fetch(url, {
     method: "GET",
