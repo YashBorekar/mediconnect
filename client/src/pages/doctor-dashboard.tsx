@@ -101,17 +101,23 @@ export default function DoctorDashboard() {
     mutationFn: async (slots: string[]) => {
       console.log("SaveSlots mutation starting with slots:", slots);
       console.log("Doctor profile ID:", doctorProfile?.id);
-      console.log(
-        "Token in localStorage:",
-        localStorage.getItem("token") ? "Present" : "Missing"
-      );
+      
+      const token = localStorage.getItem("token");
+      console.log("Token in localStorage:", token ? "Present" : "Missing");
+      console.log("Token value:", token ? token.substring(0, 20) + "..." : "none");
 
-      const response = await apiRequest(`/api/doctors/${doctorProfile?.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ availableSlots: slots }),
-      });
-      return response.json();
+      try {
+        const response = await apiRequest(`/api/doctors/${doctorProfile?.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ availableSlots: slots }),
+        });
+        console.log("Response received:", response.status);
+        return response.json();
+      } catch (error) {
+        console.error("SaveSlots mutation error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });

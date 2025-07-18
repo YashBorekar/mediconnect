@@ -86,8 +86,23 @@ export default function BookAppointment() {
     enabled: !doctorId,
   });
 
-  // Use doctor's availableSlots from API
+  // Use doctor's availableSlots from API, filtered by selected date
   const availableSlots: string[] = doctor?.availableSlots || [];
+  
+  // Filter slots for the selected date and extract time
+  const filteredSlots = availableSlots.filter(slot => {
+    if (!slot.includes('T')) return false; // Skip invalid slot formats
+    const slotDate = new Date(slot);
+    return isSameDay(slotDate, selectedDate);
+  }).map(slot => {
+    const slotDate = new Date(slot);
+    return format(slotDate, 'h:mm a'); // Format as "9:00 AM"
+  });
+
+  // Reset selected time when date changes
+  useEffect(() => {
+    setSelectedTime("");
+  }, [selectedDate]);
 
   // Book appointment mutation
   const bookAppointmentMutation = useMutation({
@@ -107,14 +122,24 @@ export default function BookAppointment() {
       setLocation("/");
       // Remove booked slot from doctor's availableSlots
       if (doctor && selectedTime) {
-        const updatedSlots = (doctor.availableSlots || []).filter(
-          (slot: string) => slot !== selectedTime
-        );
-        apiRequest(`/api/doctors/${doctor.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ availableSlots: updatedSlots }),
+        // Find the original slot format (with date) that matches the selected time
+        const originalSlot = availableSlots.find(slot => {
+          if (!slot.includes('T')) return false;
+          const slotDate = new Date(slot);
+          const slotTime = format(slotDate, 'h:mm a');
+          return slotTime === selectedTime && isSameDay(slotDate, selectedDate);
         });
+        
+        if (originalSlot) {
+          const updatedSlots = (doctor.availableSlots || []).filter(
+            (slot: string) => slot !== originalSlot
+          );
+          apiRequest(`/api/doctors/${doctor.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ availableSlots: updatedSlots }),
+          });
+        }
         queryClient.invalidateQueries({
           queryKey: ["/api/doctors", doctor.id],
         });
@@ -393,8 +418,8 @@ export default function BookAppointment() {
                     Available Times
                   </h4>
                   <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {availableSlots.length > 0 ? (
-                      availableSlots.map((slot) => (
+                    {filteredSlots.length > 0 ? (
+                      filteredSlots.map((slot) => (
                         <button
                           key={slot}
                           onClick={() => setSelectedTime(slot)}
