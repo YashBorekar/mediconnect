@@ -101,10 +101,13 @@ export default function DoctorDashboard() {
     mutationFn: async (slots: string[]) => {
       console.log("SaveSlots mutation starting with slots:", slots);
       console.log("Doctor profile ID:", doctorProfile?.id);
-      
+
       const token = localStorage.getItem("token");
       console.log("Token in localStorage:", token ? "Present" : "Missing");
-      console.log("Token value:", token ? token.substring(0, 20) + "..." : "none");
+      console.log(
+        "Token value:",
+        token ? token.substring(0, 20) + "..." : "none"
+      );
 
       try {
         const response = await apiRequest(`/api/doctors/${doctorProfile?.id}`, {

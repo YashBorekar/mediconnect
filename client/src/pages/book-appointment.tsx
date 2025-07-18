@@ -88,16 +88,43 @@ export default function BookAppointment() {
 
   // Use doctor's availableSlots from API, filtered by selected date
   const availableSlots: string[] = doctor?.availableSlots || [];
-  
+
+  // Debug logging
+  console.log("=== SLOT DEBUGGING ===");
+  console.log("Doctor:", doctor);
+  console.log("Doctor ID:", doctor?.id);
+  console.log("Doctor availableSlots:", doctor?.availableSlots);
+  console.log(
+    "Doctor object keys:",
+    doctor ? Object.keys(doctor) : "No doctor"
+  );
+  console.log("Raw availableSlots:", availableSlots);
+  console.log("Selected date:", selectedDate);
+  console.log("Selected date formatted:", format(selectedDate, "yyyy-MM-dd"));
+
   // Filter slots for the selected date and extract time
-  const filteredSlots = availableSlots.filter(slot => {
-    if (!slot.includes('T')) return false; // Skip invalid slot formats
-    const slotDate = new Date(slot);
-    return isSameDay(slotDate, selectedDate);
-  }).map(slot => {
-    const slotDate = new Date(slot);
-    return format(slotDate, 'h:mm a'); // Format as "9:00 AM"
-  });
+  const filteredSlots = availableSlots
+    .filter((slot) => {
+      console.log("Processing slot:", slot);
+      if (!slot.includes("T")) {
+        console.log("  - Skipping: No 'T' in slot");
+        return false;
+      }
+      const slotDate = new Date(slot);
+      console.log("  - Slot date:", slotDate);
+      console.log("  - Slot date formatted:", format(slotDate, "yyyy-MM-dd"));
+      console.log("  - Is same day?", isSameDay(slotDate, selectedDate));
+      return isSameDay(slotDate, selectedDate);
+    })
+    .map((slot) => {
+      const slotDate = new Date(slot);
+      const formattedTime = format(slotDate, "h:mm a");
+      console.log("  - Mapping slot to time:", slot, "->", formattedTime);
+      return formattedTime;
+    });
+
+  console.log("Final filtered slots:", filteredSlots);
+  console.log("=== END SLOT DEBUGGING ===");
 
   // Reset selected time when date changes
   useEffect(() => {
@@ -123,13 +150,13 @@ export default function BookAppointment() {
       // Remove booked slot from doctor's availableSlots
       if (doctor && selectedTime) {
         // Find the original slot format (with date) that matches the selected time
-        const originalSlot = availableSlots.find(slot => {
-          if (!slot.includes('T')) return false;
+        const originalSlot = availableSlots.find((slot) => {
+          if (!slot.includes("T")) return false;
           const slotDate = new Date(slot);
-          const slotTime = format(slotDate, 'h:mm a');
+          const slotTime = format(slotDate, "h:mm a");
           return slotTime === selectedTime && isSameDay(slotDate, selectedDate);
         });
-        
+
         if (originalSlot) {
           const updatedSlots = (doctor.availableSlots || []).filter(
             (slot: string) => slot !== originalSlot
