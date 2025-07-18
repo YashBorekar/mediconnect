@@ -51,6 +51,27 @@ export default function Auth() {
     consultationFee: "",
     bio: "",
   });
+
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    lowercase: false,
+    uppercase: false,
+    number: false,
+    special: false,
+  });
+
+  const validatePassword = (password: string) => {
+    const validation = {
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[^a-zA-Z0-9]/.test(password),
+    };
+    setPasswordValidation(validation);
+    return Object.values(validation).every(Boolean);
+  };
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -100,6 +121,17 @@ export default function Auth() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate password strength for registration
+    if (!isLogin && !validatePassword(formData.password)) {
+      toast({
+        title: "Password requirements not met",
+        description: "Please ensure your password meets all requirements",
+        variant: "destructive",
+      });
+      return;
+    }
+
     authMutation.mutate(formData);
   };
 
@@ -152,11 +184,81 @@ export default function Auth() {
                   type="password"
                   required
                   value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
+                  onChange={(e) => {
+                    handleInputChange("password", e.target.value);
+                    if (!isLogin) {
+                      validatePassword(e.target.value);
+                    }
+                  }}
                   placeholder="Enter your password"
                 />
+                {!isLogin && formData.password && (
+                  <div className="mt-2 text-sm">
+                    <p className="font-medium mb-1">Password Requirements:</p>
+                    <div className="space-y-1">
+                      <div
+                        className={`flex items-center ${
+                          passwordValidation.length
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span className="mr-1">
+                          {passwordValidation.length ? "✓" : "✗"}
+                        </span>
+                        At least 8 characters
+                      </div>
+                      <div
+                        className={`flex items-center ${
+                          passwordValidation.lowercase
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span className="mr-1">
+                          {passwordValidation.lowercase ? "✓" : "✗"}
+                        </span>
+                        One lowercase letter
+                      </div>
+                      <div
+                        className={`flex items-center ${
+                          passwordValidation.uppercase
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span className="mr-1">
+                          {passwordValidation.uppercase ? "✓" : "✗"}
+                        </span>
+                        One uppercase letter
+                      </div>
+                      <div
+                        className={`flex items-center ${
+                          passwordValidation.number
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span className="mr-1">
+                          {passwordValidation.number ? "✓" : "✗"}
+                        </span>
+                        One number
+                      </div>
+                      <div
+                        className={`flex items-center ${
+                          passwordValidation.special
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <span className="mr-1">
+                          {passwordValidation.special ? "✓" : "✗"}
+                        </span>
+                        One special character
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {!isLogin && (
