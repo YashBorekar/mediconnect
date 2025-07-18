@@ -37,9 +37,8 @@ export async function apiRequest(
   console.log("Final headers:", headers);
 
   const res = await fetch(url, {
-    method: "GET",
-    headers,
     ...options,
+    headers,
     credentials: "include",
   });
 
